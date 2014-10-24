@@ -1,0 +1,17 @@
+blaws
+InfiniteWorld
+October 24, 2014
+
+This project generates terrain meshes using a randomized recursive 
+algorithm, then orients and regenerates them so that the user can never 
+reach the edge of the "map"
+
+Controls:
+Arrow keys - move view
+WASD keys - orient view
+'-', '=' - move camera up/down
+'[', ']', '\' - increase/decrease/toggle distance view limit
+Enter key - toggle view mode (fill, outline)
+ESC key - quit program
+
+Developed on Mac OSX 10.9

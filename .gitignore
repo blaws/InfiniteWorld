@@ -1,0 +1,6 @@
+*.tar.gz
+*~
+*.o
+report.*
+midterm*
+.DS_Store
