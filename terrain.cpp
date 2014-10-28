@@ -8,11 +8,21 @@
 // window & framerate
 int windowW = 700;
 int windowH = 700;
+const float fps = 30.0;
+const float mspf = 1000.0 / fps;
 
 // options
 bool solidMesh = true;
 bool viewLimitOn = true;
 float viewLimit = gridSize;
+
+// movement
+const float moveInc = 0.5;
+const float maxMove = gridSize / 8.0;
+const float lookInc = 0.05;
+direction moveDir = NONE;
+direction lookDir = NONE;
+direction heightDir = NONE;
 
 //==========================================================
 
@@ -145,62 +155,48 @@ void keyboard( unsigned char key, int x, int y )
     {
         case '=':
         case '+':
-            tripodHeight /= 1.25;
-            if( tripodHeight < 0.02 )
-            {
-                tripodHeight = 0.02;
-            }
+            heightDir = UP;
             break;
         case '-':
         case '_':
-            tripodHeight *= 1.25;
+            heightDir = DOWN;
             break;
         case '[':
         case '{':
             viewLimitOn = true;
             viewLimit /= 1.1;
+            calculateView();
+            glutPostRedisplay();
             break;
         case ']':
         case '}':
             viewLimitOn = true;
             viewLimit *= 1.1;
+            calculateView();
+            glutPostRedisplay();
             break;
         case '\\':
         case '|':
             viewLimitOn = !viewLimitOn;
+            calculateView();
+            glutPostRedisplay();
             break;
 
         case 'w':
         case 'W':
-            cameraRotZ += 0.1;
-            if( cameraRotZ >= M_PI / 2.0 )
-            {
-                cameraRotZ = M_PI / 2.0 - 0.001;
-            }
+            lookDir = static_cast<direction>( ( lookDir & ~DOWN ) | UP );
             break;
         case 's':
         case 'S':
-            cameraRotZ -= 0.1;
-            if( cameraRotZ <= -M_PI / 2.0 )
-            {
-                cameraRotZ = -M_PI / 2.0 + 0.001;
-            }
+            lookDir = static_cast<direction>( ( lookDir & ~UP ) | DOWN );
             break;
         case 'a':
         case 'A':
-            cameraRotXY += 0.1;
-            if( cameraRotXY > 2.0 * M_PI )
-            {
-                cameraRotXY -= 2.0 * M_PI;
-            }
+            lookDir = static_cast<direction>( ( lookDir & ~RIGHT ) | LEFT );
             break;
         case 'd':
         case 'D':
-            cameraRotXY -= 0.1;
-            if( cameraRotXY < 0.0 )
-            {
-                cameraRotXY += 2.0 * M_PI;
-            }
+            lookDir = static_cast<direction>( ( lookDir & ~LEFT ) | RIGHT );
             break;
             
         case 13:   // 'ENTER'
@@ -214,14 +210,47 @@ void keyboard( unsigned char key, int x, int y )
             {
                 glClearColor( 0.0, 0.0, 0.0, 1.0 );
             }
+            glutPostRedisplay();
             break;
             
         case 033:  // 'ESC'
             exit( EXIT_SUCCESS );
+            
+        default:
+            break;
     }
-    
-    calculateView();
-    glutPostRedisplay();
+}
+
+void keyboardUp( unsigned char key, int x, int y )
+{
+    switch( key )
+    {
+        case '=':
+        case '+':
+        case '-':
+        case '_':
+            heightDir = NONE;
+            break;
+            
+        case 'w':
+        case 'W':
+            lookDir = static_cast<direction>( lookDir & ~UP );
+            break;
+        case 's':
+        case 'S':
+            lookDir = static_cast<direction>( lookDir & ~DOWN );
+            break;
+        case 'a':
+        case 'A':
+            lookDir = static_cast<direction>( lookDir & ~LEFT );
+            break;
+        case 'd':
+        case 'D':
+            lookDir = static_cast<direction>( lookDir & ~RIGHT );
+            break;
+        default:
+            break;
+    }
 }
 
 void keyboardSpecials( int key, int x, int y )
@@ -229,31 +258,135 @@ void keyboardSpecials( int key, int x, int y )
     switch( key )
     {
         case GLUT_KEY_UP:
-            cameraPos.x += std::fmax( tripodHeight / 4.0, 0.5 ) * cos( cameraRotXY );
-            cameraPos.y += std::fmax( tripodHeight / 4.0, 0.5 ) * sin( cameraRotXY );
+            moveDir = static_cast<direction>( ( moveDir & ~DOWN ) | UP );
             break;
         case GLUT_KEY_DOWN:
-            cameraPos.x -= std::fmax( tripodHeight / 4.0, 0.5 ) * cos( cameraRotXY );
-            cameraPos.y -= std::fmax( tripodHeight / 4.0, 0.5 ) * sin( cameraRotXY );
-            break;
-        case GLUT_KEY_LEFT:
-            cameraPos.x += std::fmax( tripodHeight / 4.0, 0.5 ) * cos( cameraRotXY + M_PI / 2.0 );
-            cameraPos.y += std::fmax( tripodHeight / 4.0, 0.5 ) * sin( cameraRotXY + M_PI / 2.0 );
+            moveDir = static_cast<direction>( ( moveDir & ~UP ) | DOWN );
             break;
         case GLUT_KEY_RIGHT:
-            cameraPos.x -= std::fmax( tripodHeight / 4.0, 0.5 ) * cos( cameraRotXY + M_PI / 2.0 );
-            cameraPos.y -= std::fmax( tripodHeight / 4.0, 0.5 ) * sin( cameraRotXY + M_PI / 2.0 );
+            moveDir = static_cast<direction>( ( moveDir & ~LEFT ) | RIGHT );
+            break;
+        case GLUT_KEY_LEFT:
+            moveDir = static_cast<direction>( ( moveDir & ~RIGHT ) | LEFT );
+            break;
+        default:
             break;
     }
+}
 
+void keyboardSpecialsUp( int key, int x, int y )
+{
+    switch( key )
+    {
+        case GLUT_KEY_UP:
+            moveDir = static_cast<direction>( moveDir & ~UP );
+            break;
+        case GLUT_KEY_DOWN:
+            moveDir = static_cast<direction>( moveDir & ~DOWN );
+            break;
+        case GLUT_KEY_RIGHT:
+            moveDir = static_cast<direction>( moveDir & ~RIGHT );
+            break;
+        case GLUT_KEY_LEFT:
+            moveDir = static_cast<direction>( moveDir & ~LEFT );
+            break;
+        default:
+            break;
+    }
+}
+
+void move( int t )
+{
+    // skip if no movement
+    if( moveDir == NONE && lookDir == NONE && heightDir == NONE )
+    {
+        glutTimerFunc( mspf, move, 0 );
+        return;
+    }
+
+    // move
+    if( moveDir & UP )
+    {
+        cameraPos.x += std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * cos( cameraRotXY ) * moveInc;
+        cameraPos.y += std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * sin( cameraRotXY ) * moveInc;
+    }
+    else if( moveDir & DOWN )
+    {
+        cameraPos.x -= std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * cos( cameraRotXY ) * moveInc;
+        cameraPos.y -= std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * sin( cameraRotXY ) * moveInc;
+    }
+    if( moveDir & RIGHT )
+    {
+        cameraPos.x -= std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * cos( cameraRotXY + M_PI / 2.0 ) * moveInc;
+        cameraPos.y -= std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * sin( cameraRotXY + M_PI / 2.0 ) * moveInc;
+    }
+    else if( moveDir & LEFT )
+    {
+        cameraPos.x += std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * cos( cameraRotXY + M_PI / 2.0 ) * moveInc;
+        cameraPos.y += std::fmax( std::fmin( maxMove, tripodHeight / 4.0 ), moveInc ) * sin( cameraRotXY + M_PI / 2.0 ) * moveInc;
+    }
+
+    // look
+    if( lookDir & UP )
+    {
+        cameraRotZ += lookInc;
+        if( cameraRotZ >= M_PI / 2.0 )
+        {
+            cameraRotZ = M_PI / 2.0 - lookInc;
+        }
+    }
+    else if( lookDir & DOWN )
+    {
+        cameraRotZ -= lookInc;
+        if( cameraRotZ <= -M_PI / 2.0 )
+        {
+            cameraRotZ = -M_PI / 2.0 + lookInc;
+        }
+    }
+    if( lookDir & RIGHT )
+    {
+        cameraRotXY -= lookInc;
+        if( cameraRotXY < 0.0 )
+        {
+            cameraRotXY += 2.0 * M_PI;
+        }
+    }
+    else if( lookDir & LEFT )
+    {
+        cameraRotXY += lookInc;
+        if( cameraRotXY > 2.0 * M_PI )
+        {
+            cameraRotXY -= 2.0 * M_PI;
+        }
+    }
+    
+    // height
+    if( heightDir == UP )
+    {
+        tripodHeight *= 1.0 + lookInc;
+    }
+    else if( heightDir == DOWN )
+    {
+        tripodHeight /= 1.0 + lookInc;
+        if( tripodHeight < moveInc )
+        {
+            tripodHeight = moveInc;
+        }
+    }
+    
+    // check mesh edges
     if( cameraPos.x < 0.0 || cameraPos.x > gridSize - 1
-        || cameraPos.y < 0.0 || cameraPos.y > gridSize - 1 )
+       || cameraPos.y < 0.0 || cameraPos.y > gridSize - 1 )
     {
         moveToNextMesh();
     }
     
+    // redraw
     calculateView();
     glutPostRedisplay();
+
+    // repeat
+    glutTimerFunc( mspf, move, 0 );
 }
 
 void resize( int w, int h )
@@ -316,6 +449,9 @@ int main( int argc, char** argv )
     glutReshapeFunc( resize );
     glutKeyboardFunc( keyboard );
     glutSpecialFunc( keyboardSpecials );
+    glutKeyboardUpFunc( keyboardUp );
+    glutSpecialUpFunc( keyboardSpecialsUp );
+    glutTimerFunc( mspf, move, 0 );
     
     // setup data
     if( !init() )

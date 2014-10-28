@@ -174,12 +174,19 @@ float getZ( float x, float y, int meshX /* = 1 */, int meshY /* = 1 */ )
     {
         return points[meshX][meshY][ TWODIM( x1, y1 ) ].z;
     }
+
+    // get distances from vertices
+    float dx = x - std::floor( x );
+    float dy = y - std::floor( y );
     
-    // calculate average of nearest points and return
-    return ( points[meshX][meshY][ TWODIM( x1, y1 ) ].z
-            + points[meshX][meshY][ TWODIM( x2, y1 ) ].z
-            + points[meshX][meshY][ TWODIM( x1, y2 ) ].z
-            + points[meshX][meshY][ TWODIM( x2, y2 ) ].z ) / 4.0;
+    // calculate horizontal interpolations
+    float z1 = points[meshX][meshY][ TWODIM( x1, y1 ) ].z * ( 1.0 - dx )
+               + points[meshX][meshY][ TWODIM( x2, y1 ) ].z * dx;
+    float z2 = points[meshX][meshY][ TWODIM( x1, y2 ) ].z * ( 1.0 - dx )
+               + points[meshX][meshY][ TWODIM( x2, y2 ) ].z * dx;
+    
+    // return vertical interpolation of horizontal interpolations
+    return z1 * ( 1.0 - dy ) + z2 * dy;
 }
 
 void createMeshNormals( int meshX, int meshY )
