@@ -63,27 +63,28 @@ void cloudBoxTerrain( std::vector<vec3>& mesh, int left, int bottom, int right, 
     // find midpoint lines
     int xMid = ( left + right ) / 2;
     int yMid = ( bottom + top ) / 2;
+    int distFactor = std::ceil( ( right - left ) / 4.0 ) ;
     
     // fill in midpoints, if they are currently empty
     if( mesh[ TWODIM( xMid, bottom ) ].z == -1.0 )
     {
-        mesh[ TWODIM( xMid, bottom ) ] = vec3( xMid, bottom, ( z1 + z2 ) / 2.0 );
+        mesh[ TWODIM( xMid, bottom ) ] = vec3( xMid, bottom, ( z1 + z2 ) / 2.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % distFactor ) );
     }
     if( mesh[ TWODIM( right, yMid ) ].z == -1.0 )
     {
-        mesh[ TWODIM( right, yMid ) ] = vec3( right, yMid, ( z2 + z3 ) / 2.0 );
+        mesh[ TWODIM( right, yMid ) ] = vec3( right, yMid, ( z2 + z3 ) / 2.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % distFactor ) );
     }
     if( mesh[ TWODIM( xMid, top ) ].z == -1.0 )
     {
-        mesh[ TWODIM( xMid, top ) ] = vec3( xMid, top, ( z3 + z4 ) / 2.0 );
+        mesh[ TWODIM( xMid, top ) ] = vec3( xMid, top, ( z3 + z4 ) / 2.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % distFactor ) );
     }
     if( mesh[ TWODIM( left, yMid ) ].z == -1.0 )
     {
-        mesh[ TWODIM( left, yMid ) ] = vec3( left, yMid, ( z4 + z1 ) / 2.0 );
+        mesh[ TWODIM( left, yMid ) ] = vec3( left, yMid, ( z4 + z1 ) / 2.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % distFactor ) );
     }
     if( mesh[ TWODIM( xMid, yMid ) ].z == -1.0 )
     {
-        float height = ( z1 + z2 + z3 + z4 ) / 4.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % (int)std::ceil( ( right - left ) / 2.0 ) );
+        float height = ( z1 + z2 + z3 + z4 ) / 4.0 + ( rand()%2 ? 1.0 : -1.0 ) * ( rand() % (int)( distFactor * sqrt( 2.0 ) ) );
         mesh[ TWODIM( xMid, yMid ) ] = vec3( xMid, yMid, height );
     }
     

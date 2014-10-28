@@ -338,7 +338,7 @@ void move( int t )
     else if( lookDir & DOWN )
     {
         cameraRotZ -= lookInc;
-        if( cameraRotZ <= -M_PI / 2.0 )
+        if( cameraRotZ < -M_PI / 2.0 + lookInc )
         {
             cameraRotZ = -M_PI / 2.0 + lookInc;
         }
